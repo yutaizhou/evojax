@@ -56,7 +56,8 @@ class MNIST(VectorizedTask):
 
     def __init__(self,
                  batch_size: int = 1024,
-                 test: bool = False):
+                 test: bool = False,
+                 fp: str = None):
 
         self.max_steps = 1
         self.obs_shape = tuple([28, 28, 1])
@@ -71,7 +72,7 @@ class MNIST(VectorizedTask):
             print('  pip install torchvision')
             sys.exit(1)
 
-        dataset = datasets.MNIST('./data', train=not test, download=True)
+        dataset = datasets.MNIST(fp, train=not test, download=True)
         data = np.expand_dims(dataset.data.numpy() / 255., axis=-1)
         labels = dataset.targets.numpy()
 
