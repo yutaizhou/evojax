@@ -27,7 +27,17 @@ from evojax.obs_norm import ObsNormalizer
 from evojax.util import create_logger
 from evojax.util import load_model
 from evojax.util import save_model
+import wandb as wdb
 
+def scores2dict(scores: np.ndarray):
+    d = {
+        "size": scores.size,
+        "max": scores.max(),
+        "mean": scores.mean(),
+        "min": scores.min(),
+        "std": scores.std()
+        }
+    return d
 
 class Trainer(object):
     """A trainer that organizes the training logistics."""
@@ -143,18 +153,15 @@ class Trainer(object):
             for i in range(self._max_iter):
                 start_time = time.perf_counter()
                 params = self.solver.ask()
-                self._logger.debug('solver.ask time: {0:.4f}s'.format(
-                    time.perf_counter() - start_time))
+                self._logger.debug('solver.ask time: {0:.4f}s'.format(time.perf_counter() - start_time))
 
                 start_time = time.perf_counter()
                 scores = self.sim_mgr.eval_params(params=params, test=False)
-                self._logger.debug('sim_mgr.eval_params time: {0:.4f}s'.format(
-                    time.perf_counter() - start_time))
+                self._logger.debug('sim_mgr.eval_params time: {0:.4f}s'.format(time.perf_counter() - start_time))
 
                 start_time = time.perf_counter()
                 self.solver.tell(fitness=scores)
-                self._logger.debug('solver.tell time: {0:.4f}s'.format(
-                    time.perf_counter() - start_time))
+                self._logger.debug('solver.tell time: {0:.4f}s'.format(time.perf_counter() - start_time))
 
                 if i > 0 and i % self._log_interval == 0:
                     scores = np.array(scores)
@@ -164,6 +171,7 @@ class Trainer(object):
                             i, scores.size, scores.max(), scores.mean(),
                             scores.min(), scores.std()))
                     self._log_scores_fn(i, scores, "train")
+                    wdb.log(scores2dict(scores))
 
                 if i > 0 and i % self._test_interval == 0:
                     best_params = self.solver.best_params
@@ -176,6 +184,8 @@ class Trainer(object):
                             test_scores.mean(), test_scores.min(),
                             test_scores.std()))
                     self._log_scores_fn(i, test_scores, "test")
+                    wdb.log(scores2dict(scores))    
+
                     mean_test_score = test_scores.mean()
                     save_model(
                         model_dir=self._log_dir,
